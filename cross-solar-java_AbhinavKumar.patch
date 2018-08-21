@@ -1,0 +1,2479 @@
+From c65c5d5a38ef80df3ba540bdc6093b5537d8791b Mon Sep 17 00:00:00 2001
+From: Abhinav Kumar <abhinavyash.kumar@gmail.com>
+Date: Tue, 21 Aug 2018 13:59:19 +0530
+Subject: [PATCH] My submission
+XOV: XO_0_0_1
+
+---
+ build.gradle                                  |  22 +++-
+ gradle/wrapper/gradle-wrapper.jar             | Bin 54711 -> 54413 bytes
+ gradle/wrapper/gradle-wrapper.properties      |   3 +-
+ gradlew                                       |   6 +-
+ .../techtrial/controller/PanelController.java |  34 ++---
+ .../techtrial/dto/DailyElectricity.java       |   4 +-
+ .../exceptions/GlobalExceptionHandler.java    |   0
+ .../mapper/HourlyElectricityMapper.java       |  13 ++
+ .../techtrial/mapper/PanelMapper.java         |  14 +++
+ .../techtrial/model/HourlyElectricity.java    |   8 +-
+ .../HourlyElectricityRepository.java          |  11 +-
+ .../service/HourlyElectricityService.java     |  14 ++-
+ .../service/HourlyElectricityServiceImpl.java |  59 +++++++--
+ .../techtrial/service/PanelService.java       |   3 +-
+ .../techtrial/service/PanelServiceImpl.java   |  21 +++-
+ .../techtrial/vo/HourlyElectricityVO.java     |  99 +++++++++++++++
+ .../com/crossover/techtrial/vo/PanelVO.java   | 118 ++++++++++++++++++
+ src/main/resources/application.properties     |   9 +-
+ .../db/changelog/db.changelog-1.0.xml         |   7 ++
+ .../db/changelog/db.changelog-master.xml      |   0
+ .../controller/PanelControllerTest.java       |  66 +++++++++-
+ .../model/AssertAnnotationsHelper.java        |  55 ++++++++
+ .../model/HourlyElectricityTest.java          | 106 ++++++++++++++++
+ .../crossover/techtrial/model/PanelTest.java  |  92 ++++++++++++++
+ .../techtrial/model/ReflectToolHelper.java    |  30 +++++
+ .../service/HourlyElectricityServiceTest.java |  76 +++++++++++
+ .../techtrial/service/PanelServiceTest.java   |  13 ++
+ .../techtrial/vo/HourlyElectricityVOTest.java |  47 +++++++
+ .../crossover/techtrial/vo/PanelVOTest.java   |  54 ++++++++
+ 29 files changed, 932 insertions(+), 52 deletions(-)
+ mode change 100755 => 100644 gradlew
+ mode change 100755 => 100644 src/main/java/com/crossover/techtrial/exceptions/GlobalExceptionHandler.java
+ create mode 100644 src/main/java/com/crossover/techtrial/mapper/HourlyElectricityMapper.java
+ create mode 100644 src/main/java/com/crossover/techtrial/mapper/PanelMapper.java
+ create mode 100644 src/main/java/com/crossover/techtrial/vo/HourlyElectricityVO.java
+ create mode 100644 src/main/java/com/crossover/techtrial/vo/PanelVO.java
+ mode change 100755 => 100644 src/main/resources/db/changelog/db.changelog-1.0.xml
+ mode change 100755 => 100644 src/main/resources/db/changelog/db.changelog-master.xml
+ create mode 100644 src/test/java/com/crossover/techtrial/model/AssertAnnotationsHelper.java
+ create mode 100644 src/test/java/com/crossover/techtrial/model/HourlyElectricityTest.java
+ create mode 100644 src/test/java/com/crossover/techtrial/model/PanelTest.java
+ create mode 100644 src/test/java/com/crossover/techtrial/model/ReflectToolHelper.java
+ create mode 100644 src/test/java/com/crossover/techtrial/service/HourlyElectricityServiceTest.java
+ create mode 100644 src/test/java/com/crossover/techtrial/service/PanelServiceTest.java
+ create mode 100644 src/test/java/com/crossover/techtrial/vo/HourlyElectricityVOTest.java
+ create mode 100644 src/test/java/com/crossover/techtrial/vo/PanelVOTest.java
+
+diff --git a/build.gradle b/build.gradle
+index f6cec90..6faa2eb 100644
+--- a/build.gradle
++++ b/build.gradle
+@@ -13,7 +13,11 @@ buildscript {
+ 		classpath('com.github.ksoichiro:gradle-console-reporter:0.5.0')
+ 	}
+ }
+-
++plugins {
++	id 'net.ltgt.apt' version '0.13'
++	id 'net.ltgt.apt-idea' version '0.13'
++	id 'net.ltgt.apt-eclipse' version '0.13'
++}
+ apply plugin: 'java'
+ apply plugin: 'eclipse'
+ apply plugin: "jacoco"
+@@ -21,13 +25,18 @@ apply plugin: "io.spring.dependency-management"
+ apply plugin: 'org.springframework.boot'
+ apply plugin: 'io.spring.dependency-management'
+ apply plugin: 'com.github.ksoichiro.console.reporter'
++apply plugin: "net.ltgt.apt"
+ 
++configurations {
++    apt
++}
+ group = 'com.crossover'
+ version = '0.0.1-SNAPSHOT'
+ sourceCompatibility = 1.8
+ 
+ repositories {
+ 	mavenCentral()
++	mavenLocal()
+ }
+ 
+ 
+@@ -37,10 +46,21 @@ dependencies {
+ 	compile('org.springframework.boot:spring-boot-starter-web')
+ 	compile('org.springframework.boot:spring-boot-starter-data-rest')
+ 	compile('com.fasterxml.jackson.core:jackson-core')
++	compile('org.mapstruct:mapstruct-jdk8:1.2.0.Final')
++	testCompile('org.mapstruct:mapstruct-jdk8:1.2.0.Final')
+ 	testCompile('com.h2database:h2')
+ 	testCompile('org.springframework.boot:spring-boot-starter-aop')
+ 	compile('org.liquibase:liquibase-core')
+ 	runtime('org.springframework.boot:spring-boot-devtools')
+ 	runtime('mysql:mysql-connector-java')
+ 	testCompile('org.springframework.boot:spring-boot-starter-test')
++	apt('org.mapstruct:mapstruct-processor:1.2.0.Final')
+ }
++
++
++
++tasks.withType(JavaCompile) {
++    options.compilerArgs = [
++            '-Amapstruct.suppressGeneratorTimestamp=true'
++    ]
++}
+\ No newline at end of file
+diff --git a/gradle/wrapper/gradle-wrapper.jar b/gradle/wrapper/gradle-wrapper.jar
+index 1ce6e58f1ce8ae3a3be37719a2180b5567cea91d..0d4a9516871afd710a9d84d89e31ba77745607bd 100644
+GIT binary patch
+delta 26748
+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
+Ef0NsykpKVy
+
+delta 26970
+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
+W|N9yE*Ccj(AcnI{@KU}1)c!vKUc0UU
+
+diff --git a/gradle/wrapper/gradle-wrapper.properties b/gradle/wrapper/gradle-wrapper.properties
+index 44d9d03..a95009c 100644
+--- a/gradle/wrapper/gradle-wrapper.properties
++++ b/gradle/wrapper/gradle-wrapper.properties
+@@ -1,6 +1,5 @@
+-#Tue Feb 06 12:27:20 CET 2018
+ distributionBase=GRADLE_USER_HOME
+ distributionPath=wrapper/dists
++distributionUrl=https\://services.gradle.org/distributions/gradle-4.9-bin.zip
+ zipStoreBase=GRADLE_USER_HOME
+ zipStorePath=wrapper/dists
+-distributionUrl=https\://services.gradle.org/distributions/gradle-4.5.1-bin.zip
+diff --git a/gradlew b/gradlew
+old mode 100755
+new mode 100644
+index 4453cce..cccdd3d
+--- a/gradlew
++++ b/gradlew
+@@ -33,11 +33,11 @@ DEFAULT_JVM_OPTS=""
+ # Use the maximum available, or set MAX_FD != -1 to use that value.
+ MAX_FD="maximum"
+ 
+-warn ( ) {
++warn () {
+     echo "$*"
+ }
+ 
+-die ( ) {
++die () {
+     echo
+     echo "$*"
+     echo
+@@ -155,7 +155,7 @@ if $cygwin ; then
+ fi
+ 
+ # Escape application args
+-save ( ) {
++save () {
+     for i do printf %s\\n "$i" | sed "s/'/'\\\\''/g;1s/^/'/;\$s/\$/' \\\\/" ; done
+     echo " "
+ }
+diff --git a/src/main/java/com/crossover/techtrial/controller/PanelController.java b/src/main/java/com/crossover/techtrial/controller/PanelController.java
+index d308f18..0395267 100644
+--- a/src/main/java/com/crossover/techtrial/controller/PanelController.java
++++ b/src/main/java/com/crossover/techtrial/controller/PanelController.java
+@@ -1,14 +1,12 @@
+ package com.crossover.techtrial.controller;
+ 
+-import com.crossover.techtrial.dto.DailyElectricity;
+-import com.crossover.techtrial.model.HourlyElectricity;
+-import com.crossover.techtrial.model.Panel;
+-import com.crossover.techtrial.service.HourlyElectricityService;
+-import com.crossover.techtrial.service.PanelService;
+ import java.util.ArrayList;
+ import java.util.List;
++
++import javax.validation.Valid;
++
++import org.hibernate.validator.constraints.Length;
+ import org.springframework.beans.factory.annotation.Autowired;
+-import org.springframework.data.domain.Page;
+ import org.springframework.data.domain.Pageable;
+ import org.springframework.data.web.PageableDefault;
+ import org.springframework.http.ResponseEntity;
+@@ -18,6 +16,13 @@ import org.springframework.web.bind.annotation.PostMapping;
+ import org.springframework.web.bind.annotation.RequestBody;
+ import org.springframework.web.bind.annotation.RestController;
+ 
++import com.crossover.techtrial.dto.DailyElectricity;
++import com.crossover.techtrial.model.Panel;
++import com.crossover.techtrial.service.HourlyElectricityService;
++import com.crossover.techtrial.service.PanelService;
++import com.crossover.techtrial.vo.HourlyElectricityVO;
++import com.crossover.techtrial.vo.PanelVO;
++
+ /**
+  * Panel Controller for all Rest APIs related to Panel.
+  * @author Crossover
+@@ -39,7 +44,7 @@ public class PanelController {
+    * @return
+    */
+   @PostMapping(path = "/api/register")
+-  public ResponseEntity<?> registerPanel(@RequestBody Panel panel) {
++  public ResponseEntity<?> registerPanel(@RequestBody PanelVO panel) {
+     panelService.register(panel);
+     return  ResponseEntity.accepted().build();
+   }
+@@ -53,9 +58,9 @@ public class PanelController {
+   
+   @PostMapping(path = "/api/panels/{panel-serial}/hourly")
+   public ResponseEntity<?> saveHourlyElectricity(
+-      @PathVariable(value = "panel-serial") String panelSerial, 
+-      @RequestBody HourlyElectricity hourlyElectricity) {
+-    return ResponseEntity.ok(hourlyElectricityService.save(hourlyElectricity));
++      @PathVariable(value = "panel-serial") @Length(min=16, max=16) String panelSerial, 
++      @Valid @RequestBody  HourlyElectricityVO hourlyElectricity) {
++    return ResponseEntity.ok(hourlyElectricityService.save(panelSerial,hourlyElectricity));
+   }
+    
+   /**
+@@ -64,15 +69,15 @@ public class PanelController {
+   
+   @GetMapping(path = "/api/panels/{panel-serial}/hourly")
+   public ResponseEntity<?> hourlyElectricity(
+-      @PathVariable(value = "banel-serial") String panelSerial,
++      @PathVariable(value = "panel-serial") @Length(min=16, max=16) String panelSerial,
+       @PageableDefault(size = 5,value = 0) Pageable pageable) {
+     Panel panel = panelService.findBySerial(panelSerial);
+     if (panel == null) {
+       return ResponseEntity.notFound().build(); 
+     }
+-    Page<HourlyElectricity> page = hourlyElectricityService.getAllHourlyElectricityByPanelId(
++    List<HourlyElectricityVO> hourList = hourlyElectricityService.getAllHourlyElectricityByPanelId(
+         panel.getId(), pageable);
+-    return ResponseEntity.ok(page);
++    return ResponseEntity.ok(hourList);
+   }
+   
+   /**
+@@ -85,7 +90,8 @@ public class PanelController {
+   @GetMapping(path = "/api/panels/{panel-serial}/daily")
+   public ResponseEntity<List<DailyElectricity>> allDailyElectricityFromYesterday(
+       @PathVariable(value = "panel-serial") String panelSerial) {
+-    List<DailyElectricity> dailyElectricityForPanel = new ArrayList<>();
++    List<DailyElectricity> dailyElectricityForPanel = new ArrayList<DailyElectricity>();
++    dailyElectricityForPanel.add(hourlyElectricityService.calculateDailyElectricityGenerated(panelSerial));
+     /**
+      * IMPLEMENT THE LOGIC HERE and FEEL FREE TO MODIFY OR ADD CODE TO RELATED CLASSES.
+      * MAKE SURE NOT TO CHANGE THE SIGNATURE OF ANY END POINT. NO PAGINATION IS NEEDED HERE.
+diff --git a/src/main/java/com/crossover/techtrial/dto/DailyElectricity.java b/src/main/java/com/crossover/techtrial/dto/DailyElectricity.java
+index b0e0ea9..c0aea56 100644
+--- a/src/main/java/com/crossover/techtrial/dto/DailyElectricity.java
++++ b/src/main/java/com/crossover/techtrial/dto/DailyElectricity.java
+@@ -3,12 +3,14 @@ package com.crossover.techtrial.dto;
+ import java.io.Serializable;
+ import java.time.LocalDate;
+ 
++import com.fasterxml.jackson.annotation.JsonInclude;
++
+ /**
+  * DailyElectricity class will hold sum, average,minimum and maximum electricity for a given day.
+  * @author Crossover
+  *
+  */
+-
++@JsonInclude(JsonInclude.Include.NON_NULL)
+ public class DailyElectricity implements Serializable {
+   
+   private static final long serialVersionUID = 3605549122072628877L;
+diff --git a/src/main/java/com/crossover/techtrial/exceptions/GlobalExceptionHandler.java b/src/main/java/com/crossover/techtrial/exceptions/GlobalExceptionHandler.java
+old mode 100755
+new mode 100644
+diff --git a/src/main/java/com/crossover/techtrial/mapper/HourlyElectricityMapper.java b/src/main/java/com/crossover/techtrial/mapper/HourlyElectricityMapper.java
+new file mode 100644
+index 0000000..753bfcd
+--- /dev/null
++++ b/src/main/java/com/crossover/techtrial/mapper/HourlyElectricityMapper.java
+@@ -0,0 +1,13 @@
++package com.crossover.techtrial.mapper;
++
++import org.mapstruct.Mapper;
++import org.mapstruct.ReportingPolicy;
++
++import com.crossover.techtrial.model.HourlyElectricity;
++import com.crossover.techtrial.vo.HourlyElectricityVO;
++
++@Mapper(unmappedTargetPolicy = ReportingPolicy.IGNORE, componentModel="spring")
++public interface HourlyElectricityMapper {
++	public HourlyElectricityVO fromDB(HourlyElectricity HourlyElectricity);
++	public HourlyElectricity toDB(HourlyElectricityVO hourlyElectricityVO);
++}
+diff --git a/src/main/java/com/crossover/techtrial/mapper/PanelMapper.java b/src/main/java/com/crossover/techtrial/mapper/PanelMapper.java
+new file mode 100644
+index 0000000..58fb695
+--- /dev/null
++++ b/src/main/java/com/crossover/techtrial/mapper/PanelMapper.java
+@@ -0,0 +1,14 @@
++package com.crossover.techtrial.mapper;
++
++import org.mapstruct.Mapper;
++import org.mapstruct.ReportingPolicy;
++
++import com.crossover.techtrial.model.Panel;
++import com.crossover.techtrial.vo.PanelVO;
++
++@Mapper(unmappedTargetPolicy = ReportingPolicy.IGNORE, componentModel = "spring")
++public interface PanelMapper {
++public PanelVO fromDB(Panel panel);
++
++public Panel toDB(PanelVO panelVO);
++}
+diff --git a/src/main/java/com/crossover/techtrial/model/HourlyElectricity.java b/src/main/java/com/crossover/techtrial/model/HourlyElectricity.java
+index 275f765..6967867 100644
+--- a/src/main/java/com/crossover/techtrial/model/HourlyElectricity.java
++++ b/src/main/java/com/crossover/techtrial/model/HourlyElectricity.java
+@@ -5,12 +5,14 @@ import java.io.Serializable;
+ import java.time.LocalDateTime;
+ import javax.persistence.Column;
+ import javax.persistence.Entity;
++import javax.persistence.FetchType;
+ import javax.persistence.GeneratedValue;
+ import javax.persistence.GenerationType;
+ import javax.persistence.Id;
+ import javax.persistence.JoinColumn;
+ import javax.persistence.ManyToOne;
+ import javax.persistence.Table;
++import javax.validation.constraints.NotNull;
+ 
+ 
+ /**
+@@ -30,14 +32,16 @@ public class HourlyElectricity implements Serializable {
+   @GeneratedValue(strategy = GenerationType.IDENTITY)
+   Long id;
+   
+-  @JsonIgnore
+-  @ManyToOne
++  @NotNull
++  @ManyToOne(fetch = FetchType.EAGER)
+   @JoinColumn(name = "panel_id", referencedColumnName = "id")
+   Panel panel;
+   
++  @NotNull
+   @Column(name = "generated_electricity")
+   Long generatedElectricity;
+   
++  @NotNull
+   @Column(name = "reading_at")
+   LocalDateTime readingAt;
+ 
+diff --git a/src/main/java/com/crossover/techtrial/repository/HourlyElectricityRepository.java b/src/main/java/com/crossover/techtrial/repository/HourlyElectricityRepository.java
+index b883493..76bbb4c 100644
+--- a/src/main/java/com/crossover/techtrial/repository/HourlyElectricityRepository.java
++++ b/src/main/java/com/crossover/techtrial/repository/HourlyElectricityRepository.java
+@@ -1,11 +1,17 @@
+ package com.crossover.techtrial.repository;
+ 
+-import com.crossover.techtrial.model.HourlyElectricity;
++import java.time.LocalDateTime;
++import java.util.List;
++
+ import org.springframework.data.domain.Page;
+ import org.springframework.data.domain.Pageable;
++import org.springframework.data.jpa.repository.Query;
+ import org.springframework.data.repository.PagingAndSortingRepository;
++import org.springframework.data.repository.query.Param;
+ import org.springframework.data.rest.core.annotation.RestResource;
+ 
++import com.crossover.techtrial.model.HourlyElectricity;
++
+ /**
+  * HourlyElectricity Repository is for all operations for HourlyElectricity.
+  * @author Crossover
+@@ -14,4 +20,7 @@ import org.springframework.data.rest.core.annotation.RestResource;
+ public interface HourlyElectricityRepository 
+     extends PagingAndSortingRepository<HourlyElectricity,Long> {
+   Page<HourlyElectricity> findAllByPanelIdOrderByReadingAtDesc(Long panelId,Pageable pageable);
++  
++  @Query("SELECT t FROM HourlyElectricity t where t.readingAt>=:endOfPreviousDayTime and t.readingAt <= :readingAt AND t.panel.serial = :serial")
++  List<HourlyElectricity> findAllByDateAndSerial(@Param("readingAt") LocalDateTime readingAt,@Param("endOfPreviousDayTime") LocalDateTime endOfPreviousDayTime,@Param("serial") String serial);
+ }
+diff --git a/src/main/java/com/crossover/techtrial/service/HourlyElectricityService.java b/src/main/java/com/crossover/techtrial/service/HourlyElectricityService.java
+index 70c40b7..81c58c4 100644
+--- a/src/main/java/com/crossover/techtrial/service/HourlyElectricityService.java
++++ b/src/main/java/com/crossover/techtrial/service/HourlyElectricityService.java
+@@ -1,16 +1,22 @@
+ package com.crossover.techtrial.service;
+ 
+-import com.crossover.techtrial.model.HourlyElectricity;
+-import org.springframework.data.domain.Page;
++
++import java.util.List;
++
+ import org.springframework.data.domain.Pageable;
+ 
++import com.crossover.techtrial.dto.DailyElectricity;
++import com.crossover.techtrial.vo.HourlyElectricityVO;
++
+ /**
+  * HourlyElectricityService interface for all services realted to HourlyElectricity.
+  * @author Crossover
+  *
+  */
+ public interface HourlyElectricityService {
+-  HourlyElectricity save(HourlyElectricity hourlyElectricity);
++  HourlyElectricityVO save(String panelSerial, HourlyElectricityVO hourlyElectricity);
++  
++  List<HourlyElectricityVO> getAllHourlyElectricityByPanelId(Long panelId, Pageable pageable);
+   
+-  Page<HourlyElectricity> getAllHourlyElectricityByPanelId(Long panelId, Pageable pageable);
++  public DailyElectricity calculateDailyElectricityGenerated(String panelSerial);
+ }
+diff --git a/src/main/java/com/crossover/techtrial/service/HourlyElectricityServiceImpl.java b/src/main/java/com/crossover/techtrial/service/HourlyElectricityServiceImpl.java
+index 6634e49..2f94b61 100644
+--- a/src/main/java/com/crossover/techtrial/service/HourlyElectricityServiceImpl.java
++++ b/src/main/java/com/crossover/techtrial/service/HourlyElectricityServiceImpl.java
+@@ -1,13 +1,24 @@
+ package com.crossover.techtrial.service;
+ 
+-import com.crossover.techtrial.model.HourlyElectricity;
+-import com.crossover.techtrial.repository.HourlyElectricityRepository;
++import java.time.LocalDateTime;
++import java.time.ZoneId;
++import java.util.ArrayList;
++import java.util.Collections;
++import java.util.Comparator;
++import java.util.Date;
++import java.util.List;
+ 
+ import org.springframework.beans.factory.annotation.Autowired;
+-import org.springframework.data.domain.Page;
+ import org.springframework.data.domain.Pageable;
+ import org.springframework.stereotype.Service;
++import org.springframework.util.CollectionUtils;
+ 
++import com.crossover.techtrial.dto.DailyElectricity;
++import com.crossover.techtrial.mapper.HourlyElectricityMapper;
++import com.crossover.techtrial.model.HourlyElectricity;
++import com.crossover.techtrial.model.Panel;
++import com.crossover.techtrial.repository.HourlyElectricityRepository;
++import com.crossover.techtrial.vo.HourlyElectricityVO;
+ /**
+  * HourlyElectricityServiceImpl will handle electricity generated by a Panel.
+  *
+@@ -19,13 +30,45 @@ import org.springframework.stereotype.Service;
+ public class HourlyElectricityServiceImpl implements HourlyElectricityService {
+   @Autowired
+   HourlyElectricityRepository hourlyElectricityRepository;
++  @Autowired
++  HourlyElectricityMapper hourlyElectricityMapper;
+   
+-  public HourlyElectricity save(HourlyElectricity hourlyElectricity) {
+-    return hourlyElectricityRepository.save(hourlyElectricity);
+-  }
++  @Autowired
++  PanelService panelService;
+   
+-  public Page<HourlyElectricity> getAllHourlyElectricityByPanelId(Long panelId, Pageable pageable) {
+-    return hourlyElectricityRepository.findAllByPanelIdOrderByReadingAtDesc(panelId, pageable);
++  public HourlyElectricityVO save(String panelSerial, HourlyElectricityVO hourlyElectricityVO) {
++	Panel panel = panelService.findBySerial(panelSerial);
++	HourlyElectricity hourlyElectricity =hourlyElectricityMapper.toDB(hourlyElectricityVO);
++	hourlyElectricity.setPanel(panel);
++	HourlyElectricityVO electricityVO = hourlyElectricityMapper.fromDB(hourlyElectricityRepository.save(hourlyElectricity));
++    return electricityVO;
+   }
+   
++  public List<HourlyElectricityVO> getAllHourlyElectricityByPanelId(Long panelId, Pageable pageable) {
++	  List<HourlyElectricity> hourlyList = hourlyElectricityRepository.findAllByPanelIdOrderByReadingAtDesc(panelId, pageable).getContent();
++	  List<HourlyElectricityVO> electricityVOs = new ArrayList<HourlyElectricityVO>();
++	  for(HourlyElectricity hElectricity : hourlyList){
++		  HourlyElectricityVO electricityVO = hourlyElectricityMapper.fromDB(hElectricity);
++		  electricityVOs.add(electricityVO);
++	  }
++    return electricityVOs;
++  }
++  public DailyElectricity calculateDailyElectricityGenerated(String panelSerial){
++	  LocalDateTime currTime =new Date().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
++	  LocalDateTime endOfPreviousDayTime = LocalDateTime.of(currTime.getYear(), currTime.getMonth(), currTime.getDayOfMonth(), 00, 00 , 000);
++	  List<HourlyElectricity> dayData = hourlyElectricityRepository.findAllByDateAndSerial(currTime,endOfPreviousDayTime, panelSerial);
++	  DailyElectricity dailyElectricity = new DailyElectricity();
++	  if(!CollectionUtils.isEmpty(dayData)){
++	  Long sum = dayData.size()>1 ? dayData.stream().filter(o -> o.getGeneratedElectricity() > 10).mapToLong(HourlyElectricity::getGeneratedElectricity).sum() : dayData.get(0).getGeneratedElectricity();
++	  dailyElectricity.setSum(sum);
++	  Double average = dayData.size()>1 ? (dayData.stream().filter(o -> o.getGeneratedElectricity() > 10).mapToLong(HourlyElectricity::getGeneratedElectricity).average()).getAsDouble() : dayData.get(0).getGeneratedElectricity();
++	  dailyElectricity.setAverage(average);
++	  Long min = dayData.size()>1 ? (Collections.min(dayData, Comparator.comparing(s -> s.getGeneratedElectricity()))).getGeneratedElectricity() : 0;
++	  dailyElectricity.setMin(min);
++	  Long max = dayData.size()>1 ? (Collections.max(dayData, Comparator.comparing(s -> s.getGeneratedElectricity()))).getGeneratedElectricity() : dayData.get(0).getGeneratedElectricity();
++	  dailyElectricity.setMax(max);
++	  }
++	  return dailyElectricity;
++  }
++ 
+ }
+\ No newline at end of file
+diff --git a/src/main/java/com/crossover/techtrial/service/PanelService.java b/src/main/java/com/crossover/techtrial/service/PanelService.java
+index b1ba940..a6a54d3 100644
+--- a/src/main/java/com/crossover/techtrial/service/PanelService.java
++++ b/src/main/java/com/crossover/techtrial/service/PanelService.java
+@@ -1,6 +1,7 @@
+ package com.crossover.techtrial.service;
+ 
+ import com.crossover.techtrial.model.Panel;
++import com.crossover.techtrial.vo.PanelVO;
+ 
+ /**
+  * PanelService interface for Panels.
+@@ -14,7 +15,7 @@ public interface PanelService {
+    * @param panel to register with system.
+    */
+   
+-  void register(Panel panel);
++  void register(PanelVO panel);
+   
+   Panel findBySerial(String serial);
+ }
+diff --git a/src/main/java/com/crossover/techtrial/service/PanelServiceImpl.java b/src/main/java/com/crossover/techtrial/service/PanelServiceImpl.java
+index 48649de..32869ca 100644
+--- a/src/main/java/com/crossover/techtrial/service/PanelServiceImpl.java
++++ b/src/main/java/com/crossover/techtrial/service/PanelServiceImpl.java
+@@ -1,10 +1,14 @@
+ package com.crossover.techtrial.service;
+ 
+-import com.crossover.techtrial.model.Panel;
+-import com.crossover.techtrial.repository.PanelRepository;
++import org.mapstruct.factory.Mappers;
+ import org.springframework.beans.factory.annotation.Autowired;
+ import org.springframework.stereotype.Service;
+ 
++import com.crossover.techtrial.mapper.PanelMapper;
++import com.crossover.techtrial.model.Panel;
++import com.crossover.techtrial.repository.PanelRepository;
++import com.crossover.techtrial.vo.PanelVO;
++
+ 
+ /**
+  * PanelServiceImpl for panel related handling.
+@@ -17,12 +21,17 @@ public class PanelServiceImpl implements PanelService {
+   @Autowired
+   PanelRepository panelRepository;
+   
+-  /* (non-Javadoc)
+-   * @see com.crossover.techtrial.service.PanelService#register(com.crossover.techtrial.model.Panel)
+-   */
++  @Autowired
++  PanelMapper panelMapper;
++  
++  public PanelServiceImpl(){
++	  panelMapper  = Mappers.getMapper(PanelMapper.class);
++  }
+   
+   @Override
+-  public void register(Panel panel) { 
++  public void register(PanelVO panelVO) { 
++	Panel panel = panelMapper.toDB(panelVO);
++	panelMapper.fromDB(panel);
+     panelRepository.save(panel);
+   }
+   
+diff --git a/src/main/java/com/crossover/techtrial/vo/HourlyElectricityVO.java b/src/main/java/com/crossover/techtrial/vo/HourlyElectricityVO.java
+new file mode 100644
+index 0000000..a2bc6e9
+--- /dev/null
++++ b/src/main/java/com/crossover/techtrial/vo/HourlyElectricityVO.java
+@@ -0,0 +1,99 @@
++package com.crossover.techtrial.vo;
++
++import com.fasterxml.jackson.annotation.JsonIgnore;
++import com.fasterxml.jackson.annotation.JsonInclude;
++
++@JsonInclude(JsonInclude.Include.NON_NULL)
++public class HourlyElectricityVO {
++
++  Long id;
++  
++  @JsonIgnore
++  PanelVO panel;
++  
++  Long generatedElectricity;
++  
++  String readingAt;
++
++  public Long getId() {
++    return id;
++  }
++
++  public void setId(Long id) {
++    this.id = id;
++  }
++
++  public PanelVO getPanel() {
++    return panel;
++  }
++
++  public void setPanel(PanelVO panel) {
++    this.panel = panel;
++  }
++
++  public Long getGeneratedElectricity() {
++    return generatedElectricity;
++  }
++
++  public void setGeneratedElectricity(Long generatedElectricity) {
++    this.generatedElectricity = generatedElectricity;
++  }
++
++  public String getReadingAt() {
++    return readingAt;
++  }
++
++  public void setReadingAt(String readingAt) {
++    this.readingAt = readingAt;
++  }
++
++  
++  @Override
++  public int hashCode() {
++    final int prime = 31;
++    int result = 1;
++    result = prime * result + ((id == null) ? 0 : id.hashCode());
++    result = prime * result + ((readingAt == null) ? 0 : readingAt.hashCode());
++    return result;
++  }
++
++  
++  @Override
++  public boolean equals(Object obj) {
++    if (this == obj) {
++      return true;
++    }
++    if (obj == null) {
++      return false;
++    }
++    if (getClass() != obj.getClass()) {
++      return false;
++    }
++    HourlyElectricityVO other = (HourlyElectricityVO) obj;
++    if (id == null) {
++      if (other.id != null) {
++        return false;
++      }
++    } else if (!id.equals(other.id)) {
++      return false;
++    }
++    if (readingAt == null) {
++      if (other.readingAt != null) {
++        return false;
++      }
++    } else if (!readingAt.equals(other.readingAt)) {
++      return false;
++    }
++    return true;
++  }
++
++  
++  @Override
++  public String toString() {
++    return "HourlyElectricity [id=" + id + ", panel=" + panel + ", generatedElectricity="
++        + generatedElectricity + ", readingAt=" + readingAt + "]";
++  }
++  
++  
++  
++}
+diff --git a/src/main/java/com/crossover/techtrial/vo/PanelVO.java b/src/main/java/com/crossover/techtrial/vo/PanelVO.java
+new file mode 100644
+index 0000000..451c4f8
+--- /dev/null
++++ b/src/main/java/com/crossover/techtrial/vo/PanelVO.java
+@@ -0,0 +1,118 @@
++package com.crossover.techtrial.vo;
++
++import javax.validation.constraints.Digits;
++
++import org.hibernate.validator.constraints.Length;
++
++import com.fasterxml.jackson.annotation.JsonInclude;
++@JsonInclude(JsonInclude.Include.NON_NULL)
++public class PanelVO{
++	
++  Long id;
++  
++  @Length(min=16, max=16)
++  String serial;
++  
++  @Digits(integer = 2, fraction = 6)
++  Double longitude;
++  
++  @Digits(integer = 2, fraction = 6)
++  Double latitude;
++
++  String brand;
++
++  public Long getId() {
++    return id;
++  }
++
++  public void setId(Long id) {
++    this.id = id;
++  }
++
++  public String getSerial() {
++    return serial;
++  }
++
++  public void setSerial(String serial) {
++    this.serial = serial;
++  }
++
++  public Double getLongitude() {
++    return longitude;
++  }
++
++  public void setLongitude(Double longitude) {
++    this.longitude = longitude;
++  }
++
++  public Double getLatitude() {
++    return latitude;
++  }
++
++  public void setLatitude(Double latitude) {
++    this.latitude = latitude;
++  }
++
++  public String getBrand() {
++    return brand;
++  }
++
++  public void setBrand(String brand) {
++    this.brand = brand;
++  }
++
++  
++  @Override
++  public int hashCode() {
++    final int prime = 31;
++    int result = 1;
++    result = prime * result + ((brand == null) ? 0 : brand.hashCode());
++    result = prime * result + ((id == null) ? 0 : id.hashCode());
++    result = prime * result + ((serial == null) ? 0 : serial.hashCode());
++    return result;
++  }
++
++  
++  @Override
++  public boolean equals(Object obj) {
++    if (this == obj) {
++      return true;
++    }
++    if (obj == null) {
++      return false;
++    }
++    if (getClass() != obj.getClass()) {
++      return false;
++    }
++    PanelVO other = (PanelVO) obj;
++    if (brand == null) {
++      if (other.brand != null) {
++        return false;
++      }
++    } else if (!brand.equals(other.brand)) {
++      return false;
++    }
++    if (id == null) {
++      if (other.id != null) {
++        return false;
++      }
++    } else if (!id.equals(other.id)) {
++      return false;
++    }
++    if (serial == null) {
++      if (other.serial != null) {
++        return false;
++      }
++    } else if (!serial.equals(other.serial)) {
++      return false;
++    }
++    return true;
++  }
++
++ 
++  @Override
++  public String toString() {
++    return "Panel [id=" + id + ", serial=" + serial + ", longitude=" + longitude + ", latitude="
++        + latitude + ", brand=" + brand + "]";
++  }
++}
+diff --git a/src/main/resources/application.properties b/src/main/resources/application.properties
+index c7cc890..03c620d 100644
+--- a/src/main/resources/application.properties
++++ b/src/main/resources/application.properties
+@@ -2,7 +2,7 @@
+ #Database connection Parameters
+ spring.datasource.url: jdbc:mysql://localhost:3306/crosssolar?createDatabaseIfNotExist=true&useSSL=false
+ spring.datasource.username=root
+-spring.datasource.password=
++spring.datasource.password=root
+ spring.datasource.driver-class-name=com.mysql.jdbc.Driver
+ 
+ spring.jpa.hibernate.ddl-auto=none
+@@ -11,6 +11,7 @@ spring.liquibase.change-log=classpath:/db/changelog/db.changelog-master.xml
+ 
+ spring.data.rest.base-path=/api
+ 
+-logging.level.root=INFO
+-logging.level.org.hibernate.SQL=INFO
+-logging.level.org.springframework=INFO
+\ No newline at end of file
++logging.level.root=TRACE
++logging.level.org.hibernate.SQL=DEBUG
++logging.level.org.hibernate.type.descriptor.sql.BasicBinder=TRACE
++logging.level.org.hibernate.type=TRACE
+\ No newline at end of file
+diff --git a/src/main/resources/db/changelog/db.changelog-1.0.xml b/src/main/resources/db/changelog/db.changelog-1.0.xml
+old mode 100755
+new mode 100644
+index e143a10..6450a5f
+--- a/src/main/resources/db/changelog/db.changelog-1.0.xml
++++ b/src/main/resources/db/changelog/db.changelog-1.0.xml
+@@ -35,4 +35,11 @@
+          <column name="reading_at">2018-01-31 09:00:00</column>
+          </insert>
+      </changeSet>
++     <changeSet id="1001122005_update_panel_table" author="Abhinav">
++     <addUniqueConstraint columnNames="serial" tableName="panel"/>
++     </changeSet>
++     <changeSet id="1001122006_update_hourly_electricity_table" author="Abhinav">
++     <addNotNullConstraint  columnName="generated_electricity" columnDataType="BIGINT" tableName="hourly_electricity"/>
++     <addNotNullConstraint columnName="reading_at" columnDataType="datetime" tableName="hourly_electricity"/>
++     </changeSet>
+ </databaseChangeLog>
+diff --git a/src/main/resources/db/changelog/db.changelog-master.xml b/src/main/resources/db/changelog/db.changelog-master.xml
+old mode 100755
+new mode 100644
+diff --git a/src/test/java/com/crossover/techtrial/controller/PanelControllerTest.java b/src/test/java/com/crossover/techtrial/controller/PanelControllerTest.java
+index a1deacf..1e6c01d 100644
+--- a/src/test/java/com/crossover/techtrial/controller/PanelControllerTest.java
++++ b/src/test/java/com/crossover/techtrial/controller/PanelControllerTest.java
+@@ -1,10 +1,14 @@
+ package com.crossover.techtrial.controller;
+ 
++import com.crossover.techtrial.mapper.PanelMapper;
+ import com.crossover.techtrial.model.Panel;
++import com.crossover.techtrial.service.PanelService;
++
+ import org.junit.Assert;
+ import org.junit.Before;
+ import org.junit.Test;
+ import org.junit.runner.RunWith;
++import org.mapstruct.factory.Mappers;
+ import org.mockito.Mock;
+ import org.springframework.beans.factory.annotation.Autowired;
+ import org.springframework.boot.test.context.SpringBootTest;
+@@ -35,24 +39,76 @@ public class PanelControllerTest {
+   @Mock
+   private PanelController panelController;
+   
++  @Mock
++  private PanelService panelService;
++  
+   @Autowired
+   private TestRestTemplate template;
+-
++  
+   @Before
+   public void setup() throws Exception {
++	PanelMapper INSTANCE = Mappers.getMapper(PanelMapper.class);
+     mockMvc = MockMvcBuilders.standaloneSetup(panelController).build();
+   }
+-
+-  @Test
+-  public void testPanelShouldBeRegistered() throws Exception {
++  @Test  
++  public void testPanelNotAllowDuplicateSerialNumberForRegisteration() {
++    HttpEntity<Object> panel = getHttpEntity(
++        "{\"serial\": \"1234567890123456\", \"longitude\": \"54.123232\"," 
++            + " \"latitude\": \"54.123232\",\"brand\":\"tesla\" }");
++    ResponseEntity<Panel> response = template.postForEntity(
++        "/api/register", panel, Panel.class);
++    Assert.assertEquals(400,response.getStatusCode().value());
++  }
++  @Test  
++  public void testPanelSerialNumberSizeValidation() {
+     HttpEntity<Object> panel = getHttpEntity(
+         "{\"serial\": \"232323\", \"longitude\": \"54.123232\"," 
+             + " \"latitude\": \"54.123232\",\"brand\":\"tesla\" }");
+     ResponseEntity<Panel> response = template.postForEntity(
+         "/api/register", panel, Panel.class);
+-    Assert.assertEquals(202,response.getStatusCode().value());
++    Assert.assertEquals(400,response.getStatusCode().value());
++  }
++  
++  @Test  
++  public void testPanelLatitudeValueFormatValidation() {
++    HttpEntity<Object> panel = getHttpEntity(
++        "{\"serial\": \"1234567890123456\", \"longitude\": \"54.123232\"," 
++            + " \"latitude\": \"54.1232323\",\"brand\":\"tesla\" }");
++    ResponseEntity<Panel> response = template.postForEntity(
++        "/api/register", panel, Panel.class);
++    Assert.assertEquals(400,response.getStatusCode().value());
+   }
+ 
++  @Test  
++  public void testPanelLongitudeValueFormatValidation() {
++    HttpEntity<Object> panel = getHttpEntity(
++        "{\"serial\": \"1234567890123456\", \"longitude\": \"54.1232329\"," 
++            + " \"latitude\": \"54.123232\",\"brand\":\"tesla\" }");
++    ResponseEntity<Panel> response = template.postForEntity(
++        "/api/register", panel, Panel.class);
++    Assert.assertEquals(400,response.getStatusCode().value());
++  }
++  @Test  
++  public void testSaveHourlyElectricityWrongSerialNumber() {
++	 HttpEntity<Object> hourly = getHttpEntity(
++		        "{\"panelId\": \"1\", \"longitude\": \"54.1232329\"," 
++		            + " \"latitude\": \"54.123232\",\"brand\":\"tesla\" }");
++   
++    ResponseEntity<Panel> response = template.postForEntity(
++        "/api/panels/123456/hourly", hourly, Panel.class);
++    Assert.assertEquals(400,response.getStatusCode().value());
++  }
++  @Test  
++  public void testSaveHourlyElectricityWrongLongitudeNumber() {
++	 HttpEntity<Object> hourly = getHttpEntity(
++		        "{\"panelId\": \"1\", \"longitude\": \"54.12323295464\"," 
++		            + " \"latitude\": \"54.123232\",\"brand\":\"tesla\" }");
++   
++    ResponseEntity<Panel> response = template.postForEntity(
++        "/api/panels/1234567890123456/hourly", hourly, Panel.class);
++    Assert.assertEquals(400,response.getStatusCode().value());
++  }
++  
+   private HttpEntity<Object> getHttpEntity(Object body) {
+     HttpHeaders headers = new HttpHeaders();
+     headers.setContentType(MediaType.APPLICATION_JSON);
+diff --git a/src/test/java/com/crossover/techtrial/model/AssertAnnotationsHelper.java b/src/test/java/com/crossover/techtrial/model/AssertAnnotationsHelper.java
+new file mode 100644
+index 0000000..8a92d8c
+--- /dev/null
++++ b/src/test/java/com/crossover/techtrial/model/AssertAnnotationsHelper.java
+@@ -0,0 +1,55 @@
++package com.crossover.techtrial.model;
++
++import java.lang.annotation.Annotation;
++import java.util.Arrays;
++import java.util.List;
++
++public class AssertAnnotationsHelper {
++	private static void assertAnnotations(List<Class> annotationClasses, List<Annotation> annotations) {
++		// length
++		if (annotationClasses.size() != annotations.size()) {
++			throw new AssertionError(String.format("Expected %d annotations, but found %d", annotationClasses.size(),
++					annotations.size()));
++		}
++		// exists
++		annotationClasses.forEach(ac -> {
++			long cnt = annotations.stream().filter(a -> a.annotationType().isAssignableFrom(ac)).count();
++			if (cnt == 0) {
++				throw new AssertionError(String.format("No annotation of type %s found", ac.getName()));
++			}
++		});
++	}
++
++	public static void assertType(Class c, Class... annotationClasses) {
++
++		assertAnnotations(
++
++				Arrays.asList(annotationClasses)
++
++				, Arrays.asList(c.getAnnotations())
++
++		);
++
++	}
++
++	public static void assertField(Class c, String fieldName, Class... annotationClasses) {
++		try {
++			assertAnnotations(Arrays.asList(annotationClasses),
++					Arrays.asList(c.getDeclaredField(fieldName).getAnnotations()));
++			System.out.println(c.getDeclaredField(fieldName).getAnnotations().length);
++		} catch (NoSuchFieldException nsfe) {
++			throw new AssertionError(nsfe);
++		}
++	}
++
++	public static void assertMethod(Class c, String getterName, Class... annotationClasses) {
++		try {
++			assertAnnotations(Arrays.asList(annotationClasses),
++					Arrays.asList(c.getDeclaredMethod(getterName).getAnnotations()));
++
++		} catch (NoSuchMethodException nsfe) {
++			throw new AssertionError(nsfe);
++		}
++
++	}
++}
+diff --git a/src/test/java/com/crossover/techtrial/model/HourlyElectricityTest.java b/src/test/java/com/crossover/techtrial/model/HourlyElectricityTest.java
+new file mode 100644
+index 0000000..670a30b
+--- /dev/null
++++ b/src/test/java/com/crossover/techtrial/model/HourlyElectricityTest.java
+@@ -0,0 +1,106 @@
++package com.crossover.techtrial.model;
++
++import java.util.HashSet;
++import java.util.Set;
++
++import javax.persistence.Column;
++import javax.persistence.Entity;
++import javax.persistence.GeneratedValue;
++import javax.persistence.JoinColumn;
++import javax.persistence.ManyToOne;
++import javax.persistence.Table;
++import javax.validation.constraints.NotNull;
++
++import org.junit.Assert;
++import org.junit.Test;
++import org.junit.runner.RunWith;
++import org.springframework.lang.Nullable;
++import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
++
++import com.fasterxml.jackson.annotation.JsonIgnore;
++@RunWith(SpringJUnit4ClassRunner.class)
++public class HourlyElectricityTest {
++	@Test
++	public void typeAnnotations() {
++		// assert
++		AssertAnnotationsHelper.assertType(
++				HourlyElectricity.class, Entity.class, Table.class);
++	}
++
++	@Test
++	public void fieldAnnotations() {
++		Class twoAnnotation[] = {NotNull.class,Column.class};
++		Class primaryAnnotations[] = {javax.persistence.Id.class,GeneratedValue.class};
++		Class threeAnnotations[] = {NotNull.class, ManyToOne.class, JoinColumn.class};
++		AssertAnnotationsHelper.assertField(HourlyElectricity.class, "id",primaryAnnotations);
++		AssertAnnotationsHelper.assertField(HourlyElectricity.class, "panel",threeAnnotations);
++		AssertAnnotationsHelper.assertField(HourlyElectricity.class, "generatedElectricity", twoAnnotation);
++		AssertAnnotationsHelper.assertField(HourlyElectricity.class, "readingAt", twoAnnotation);
++
++	}
++
++	
++
++	@Test
++	public void entity() {
++		Entity a= ReflectToolHelper.getClassAnnotation(HourlyElectricity.class, Entity.class);
++		Assert.assertEquals("", a.name());
++	}
++
++	@Test
++	public void table() {
++		// setup
++		Table t= ReflectToolHelper.getClassAnnotation(HourlyElectricity.class, Table.class);
++		// assert
++		Assert.assertEquals("hourly_electricity", t.name());
++
++	}
++
++	@Test 
++	public void equalsAndHashCode() {
++		// setup
++		HourlyElectricity panel=new HourlyElectricity();
++		panel.setId(1L);
++		HourlyElectricity samePanel=new HourlyElectricity();
++		samePanel.setId(1L);
++		HourlyElectricity diffPanel=new HourlyElectricity();
++		diffPanel.setId(2L);
++		//assert
++		Set<HourlyElectricity> set =new HashSet<HourlyElectricity>();
++		set.add(panel);
++		Assert.assertFalse(set.add(samePanel));
++		Assert.assertTrue(set.add(diffPanel));
++		// TODO Auto-generated constructor stub
++	}
++	
++	
++	
++	@Test
++	public void panel() {
++		// setup
++		JoinColumn c= ReflectToolHelper.getFieldAnnotation(
++		HourlyElectricity.class, "panel", JoinColumn.class);
++		// assert
++		Assert.assertEquals("panel_id", c.name());
++
++	}
++
++	@Test
++	public void generatedElectricity() {
++		// setup
++		Column c= ReflectToolHelper.getFieldAnnotation(
++		HourlyElectricity.class, "generatedElectricity", Column.class);
++		// assert
++		Assert.assertEquals("generated_electricity", c.name());
++	}
++
++	@Test
++	public void readingAt() {
++		// setup
++		Column a= ReflectToolHelper.getFieldAnnotation(
++		HourlyElectricity.class, "readingAt", Column.class);
++		// assert
++		Assert.assertEquals("reading_at", a.name());
++
++	}
++}
+diff --git a/src/test/java/com/crossover/techtrial/model/PanelTest.java b/src/test/java/com/crossover/techtrial/model/PanelTest.java
+new file mode 100644
+index 0000000..a873ed0
+--- /dev/null
++++ b/src/test/java/com/crossover/techtrial/model/PanelTest.java
+@@ -0,0 +1,92 @@
++package com.crossover.techtrial.model;
++import java.util.HashSet;
++import java.util.Set;
++
++import javax.persistence.Column;
++import javax.persistence.Entity;
++import javax.persistence.GeneratedValue;
++import javax.persistence.Table;
++import javax.validation.constraints.NotNull;
++
++import org.junit.Assert;
++import org.junit.Test;
++import org.junit.runner.RunWith;
++import org.springframework.lang.Nullable;
++import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
++@RunWith(SpringJUnit4ClassRunner.class)
++public class PanelTest {
++	@Test
++	public void typeAnnotations() {
++		// assert
++		AssertAnnotationsHelper.assertType(
++				Panel.class, Entity.class, Table.class);
++	}
++	@Test
++	public void fieldAnnotations() {
++		Class twoAnnotationsWithNotNull[] = {NotNull.class,Column.class};
++		Class oneAnnotation[] = {Column.class};
++		Class twoAnnotationsWithOutNull[] = {Nullable.class,Column.class};
++		Class primaryAnnotations[] = {javax.persistence.Id.class,GeneratedValue.class};
++		AssertAnnotationsHelper.assertField(Panel.class, "id",primaryAnnotations);
++		AssertAnnotationsHelper.assertField(Panel.class, "serial",twoAnnotationsWithNotNull);
++		AssertAnnotationsHelper.assertField(Panel.class, "longitude", oneAnnotation);
++		AssertAnnotationsHelper.assertField(Panel.class, "latitude", oneAnnotation);
++		AssertAnnotationsHelper.assertField(Panel.class, "brand", twoAnnotationsWithOutNull);
++
++	}
++	@Test
++	public void entity() {
++		Entity a= ReflectToolHelper.getClassAnnotation(Panel.class, Entity.class);
++		Assert.assertEquals("", a.name());
++	}
++	@Test
++	public void table() {
++		// setup
++		Table t= ReflectToolHelper.getClassAnnotation(Panel.class, Table.class);
++		// assert
++		Assert.assertEquals("panel", t.name());
++
++	}
++	@Test 
++	public void equalsAndHashCode() {
++		// setup
++		Panel panel=new Panel();
++		panel.setId(1L);
++		Panel samePanel=new Panel();
++		samePanel.setId(1L);
++		Panel diffPanel=new Panel();
++		diffPanel.setId(2L);
++		//assert
++		Set<Panel> set =new HashSet<Panel>();
++		set.add(panel);
++		Assert.assertFalse(set.add(samePanel));
++		Assert.assertTrue(set.add(diffPanel));
++		// TODO Auto-generated constructor stub
++	}
++	@Test
++	public void serial() {
++		// setup
++		Column c= ReflectToolHelper.getFieldAnnotation(
++		Panel.class, "serial", Column.class);
++		// assert
++		Assert.assertEquals("serial", c.name());
++
++	}
++	@Test
++	public void longitude() {
++		// setup
++		Column c= ReflectToolHelper.getFieldAnnotation(
++		Panel.class, "longitude", Column.class);
++		// assert
++		Assert.assertEquals("longitude", c.name());
++	}
++	@Test
++	public void brand() {
++		// setup
++		Column a= ReflectToolHelper.getFieldAnnotation(
++		Panel.class, "brand", Column.class);
++		// assert
++		Assert.assertEquals("brand", a.name());
++
++	}
++}
+diff --git a/src/test/java/com/crossover/techtrial/model/ReflectToolHelper.java b/src/test/java/com/crossover/techtrial/model/ReflectToolHelper.java
+new file mode 100644
+index 0000000..1dd4cdb
+--- /dev/null
++++ b/src/test/java/com/crossover/techtrial/model/ReflectToolHelper.java
+@@ -0,0 +1,30 @@
++package com.crossover.techtrial.model;
++
++import java.lang.annotation.Annotation;
++import java.lang.reflect.Field;
++import java.lang.reflect.Method;
++
++public class ReflectToolHelper {
++	public static <T extends Annotation> T getMethodAnnotation(Class<?> c, String methodName, Class<T> annotation) {
++		try {
++			Method m = c.getDeclaredMethod(methodName);
++			return (T) m.getAnnotation(annotation);
++		} catch (NoSuchMethodException nsme) {
++			throw new RuntimeException(nsme);
++		}
++
++	}
++
++	public static <T extends Annotation> T getFieldAnnotation(Class<?> c, String fieldName, Class<T> annotation) {
++		try {
++			Field f = c.getDeclaredField(fieldName);
++			return (T) f.getAnnotation(annotation);
++		} catch (NoSuchFieldException nsme) {
++			throw new RuntimeException(nsme);
++		}
++	}
++
++	public static <T extends Annotation> T getClassAnnotation(Class<?> c, Class<T> annotation) {
++		return (T) c.getAnnotation(annotation);
++	}
++}
+diff --git a/src/test/java/com/crossover/techtrial/service/HourlyElectricityServiceTest.java b/src/test/java/com/crossover/techtrial/service/HourlyElectricityServiceTest.java
+new file mode 100644
+index 0000000..0c372af
+--- /dev/null
++++ b/src/test/java/com/crossover/techtrial/service/HourlyElectricityServiceTest.java
+@@ -0,0 +1,76 @@
++package com.crossover.techtrial.service;
++
++import static org.junit.Assert.assertEquals;
++
++import java.time.LocalDateTime;
++import java.time.ZoneId;
++import java.util.ArrayList;
++import java.util.Date;
++import java.util.List;
++
++import org.junit.Test;
++import org.junit.runner.RunWith;
++import org.mockito.ArgumentMatchers;
++import org.mockito.InjectMocks;
++import org.mockito.Mock;
++import org.mockito.Mockito;
++import org.mockito.junit.MockitoJUnitRunner;
++import org.springframework.data.domain.PageImpl;
++
++import com.crossover.techtrial.dto.DailyElectricity;
++import com.crossover.techtrial.mapper.HourlyElectricityMapper;
++import com.crossover.techtrial.model.HourlyElectricity;
++import com.crossover.techtrial.model.Panel;
++import com.crossover.techtrial.repository.HourlyElectricityRepository;
++
++@RunWith(MockitoJUnitRunner.class)
++public class HourlyElectricityServiceTest {
++	@InjectMocks
++	HourlyElectricityServiceImpl electricityServiceImpl;
++	
++	@Mock
++	HourlyElectricityRepository hourlyElectricityRepository;
++	
++	
++	@Test
++    public void testFindTheGreatestFromAllData() {
++		@SuppressWarnings("deprecation")
++		org.springframework.data.domain.PageRequest pageRequest = new org.springframework.data.domain.PageRequest(0, 10);
++		List<HourlyElectricity> list = new ArrayList<HourlyElectricity>();
++		Mockito.when(hourlyElectricityRepository.findAllByPanelIdOrderByReadingAtDesc(1234567890123456L, pageRequest)).thenReturn(new PageImpl<HourlyElectricity>(list));
++        assertEquals(0, electricityServiceImpl.getAllHourlyElectricityByPanelId(1234567890123456L, pageRequest).size());
++    }
++	
++	@Test
++    public void testCalculateDailyElectricityGenerated() {
++		LocalDateTime currTime =new Date().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
++		LocalDateTime endOfPreviousDayTime = LocalDateTime.of(currTime.getYear(), currTime.getMonth(), currTime.getDayOfMonth(), 00, 00 , 000);
++		List<HourlyElectricity> hourly  = new ArrayList<HourlyElectricity>();
++		HourlyElectricity electricity = new HourlyElectricity();
++		Panel panel= new Panel();
++		panel.setBrand("tesla");
++		panel.setLatitude(54.123232);
++		panel.setLongitude(54.123232);
++		electricity.setGeneratedElectricity(200L);
++		electricity.setId(1234567890123456L);
++		electricity.setPanel(panel);
++		electricity.setReadingAt(endOfPreviousDayTime);
++		hourly.add(electricity);
++		Mockito.when(hourlyElectricityRepository.findAllByDateAndSerial(ArgumentMatchers.anyObject(),ArgumentMatchers.anyObject(), ArgumentMatchers.anyString())).thenReturn(hourly);
++		DailyElectricity dailyElectricity = electricityServiceImpl.calculateDailyElectricityGenerated("1234567890123456");
++        assertEquals(new Double(200.0), dailyElectricity.getAverage());
++        assertEquals(new Long(200L), dailyElectricity.getMax());
++        assertEquals(new Long(200L), dailyElectricity.getSum());
++        assertEquals(new Long(0), dailyElectricity.getMin());
++    }
++	@Test
++    public void testCalculateDailyElectricityGenerated_NoRowFromDataBase() {
++		Mockito.when(hourlyElectricityRepository.findAllByDateAndSerial(ArgumentMatchers.anyObject(),ArgumentMatchers.anyObject(), ArgumentMatchers.anyString())).thenReturn(null);
++		DailyElectricity dailyElectricity = electricityServiceImpl.calculateDailyElectricityGenerated("1234567890123456");
++        assertEquals(null, dailyElectricity.getAverage());
++        assertEquals(null, dailyElectricity.getMax());
++        assertEquals(null, dailyElectricity.getSum());
++        assertEquals(null, dailyElectricity.getMin());
++    }
++	
++}
+diff --git a/src/test/java/com/crossover/techtrial/service/PanelServiceTest.java b/src/test/java/com/crossover/techtrial/service/PanelServiceTest.java
+new file mode 100644
+index 0000000..e724823
+--- /dev/null
++++ b/src/test/java/com/crossover/techtrial/service/PanelServiceTest.java
+@@ -0,0 +1,13 @@
++package com.crossover.techtrial.service;
++
++import org.mockito.InjectMocks;
++import org.mockito.Mock;
++
++import com.crossover.techtrial.repository.PanelRepository;
++
++public class PanelServiceTest {
++@InjectMocks
++PanelServiceImpl panelServiceImpl;
++@Mock
++PanelRepository panelRepository;
++}
+diff --git a/src/test/java/com/crossover/techtrial/vo/HourlyElectricityVOTest.java b/src/test/java/com/crossover/techtrial/vo/HourlyElectricityVOTest.java
+new file mode 100644
+index 0000000..9a55360
+--- /dev/null
++++ b/src/test/java/com/crossover/techtrial/vo/HourlyElectricityVOTest.java
+@@ -0,0 +1,47 @@
++package com.crossover.techtrial.vo;
++
++import static org.junit.Assert.assertTrue;
++
++import org.junit.Test;
++import org.junit.runner.RunWith;
++import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
++
++@RunWith(SpringJUnit4ClassRunner.class)
++public class HourlyElectricityVOTest {
++	  @Test
++	  public void testSetId() {
++		  HourlyElectricityVO electricityVO = new HourlyElectricityVO();
++		  electricityVO.setId(3214242424L);
++		  assertTrue(electricityVO.getId() == 3214242424L);
++	  }
++	  @Test
++	  public void testSetPanel() {
++		  PanelVO panelVO= new PanelVO();
++		  panelVO.setId(100L);
++		  HourlyElectricityVO electricityVO = new HourlyElectricityVO();
++		  electricityVO.setId(3214242424L);
++		  electricityVO.setPanel(panelVO);
++		  assertTrue(electricityVO.getPanel().equals(panelVO));
++	  }
++	  @Test
++	  public void testSetGeneratedElectricity() {
++		  HourlyElectricityVO electricityVO = new HourlyElectricityVO();
++		  electricityVO.setGeneratedElectricity(435345L);
++		  assertTrue(electricityVO.getGeneratedElectricity()==435345L);
++	  }
++	  @Test
++	  public void testSetReadingAt() {
++		  HourlyElectricityVO electricityVO = new HourlyElectricityVO();
++		  electricityVO.setReadingAt("2018-01-31 09:00:00");
++		  assertTrue(electricityVO.getReadingAt().equals("2018-01-31 09:00:00"));
++	  }
++	  @Test
++	  public void hashCodesNotEqual() {
++		  HourlyElectricityVO p1= new HourlyElectricityVO();
++		  p1.setId(1L);
++		  HourlyElectricityVO p2= new HourlyElectricityVO();
++		  p2.setId(1L);
++		  assertTrue(p2.hashCode() == p2.hashCode());
++	  }
++  
++}
+diff --git a/src/test/java/com/crossover/techtrial/vo/PanelVOTest.java b/src/test/java/com/crossover/techtrial/vo/PanelVOTest.java
+new file mode 100644
+index 0000000..a776303
+--- /dev/null
++++ b/src/test/java/com/crossover/techtrial/vo/PanelVOTest.java
+@@ -0,0 +1,54 @@
++package com.crossover.techtrial.vo;
++
++import static org.junit.Assert.assertTrue;
++
++import org.junit.Test;
++import org.junit.runner.RunWith;
++import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
++@RunWith(SpringJUnit4ClassRunner.class)
++public class PanelVOTest{
++	@Test
++	public void testSetId() {
++		PanelVO panelVO= new PanelVO();
++		panelVO.setId(100L);
++		assertTrue(panelVO.getId() == 100L);
++	  }
++	  @Test
++	  public void testSetSerial() {
++		  PanelVO panelVO= new PanelVO();
++		  panelVO.setSerial("1234567890123456");
++		  assertTrue(panelVO.getSerial() == "1234567890123456");
++	  }
++	  @Test
++	  public void testWrongSerial() {
++		  PanelVO panelVO= new PanelVO();
++		  panelVO.setSerial("1234567890123465445656");
++		  
++	  }
++	  @Test
++	  public void testSetLongitude() {
++		  PanelVO panelVO= new PanelVO();
++		  panelVO.setLongitude(12.1234567);
++		  assertTrue(panelVO.getLongitude() == 12.1234567);
++	  }
++	  @Test
++	  public void testSetLatitude() {
++		  PanelVO panelVO= new PanelVO();
++		  panelVO.setLatitude(12.1234567);
++		  assertTrue(panelVO.getLatitude() == 12.1234567);
++	  }
++	  @Test
++	  public void setBrand() {
++		  PanelVO panelVO= new PanelVO();
++		  panelVO.setBrand("tesla");
++		  assertTrue(panelVO.getBrand() == "tesla");
++	  }
++	  @Test
++	  public void hashCodesNotEqual() {
++		  PanelVO p1= new PanelVO();
++		  p1.setId(1L);
++		  PanelVO p2= new PanelVO();
++		  p2.setId(1L);
++		  assertTrue(p2.hashCode() == p2.hashCode());
++	  }
++}
+-- 
+2.18.0.windows.1
+
